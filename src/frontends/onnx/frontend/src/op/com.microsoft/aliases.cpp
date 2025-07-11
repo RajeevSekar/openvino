@@ -12,6 +12,10 @@ namespace opset_1 {
 extern ov::OutputVector gather_nd(const ov::frontend::onnx::Node& node);
 extern ov::OutputVector trilu(const ov::frontend::onnx::Node& node);
 extern ov::OutputVector gelu(const ov::frontend::onnx::Node& node);
+extern ov::OutputVector negative_log_likelihood_loss(const ov::OutputVector& inputs,
+                                                     const std::string& reduction,
+                                                     bool use_ignore_index = false,
+                                                     const int64_t ignore_index_value = 0);
 }  // namespace opset_1
 namespace opset_13 {
 extern ov::OutputVector dequantize_linear(const ov::frontend::onnx::Node& node);

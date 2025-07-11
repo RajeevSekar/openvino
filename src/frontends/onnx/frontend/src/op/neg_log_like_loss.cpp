@@ -45,13 +45,14 @@ static std::shared_ptr<ov::Node> get_dynamic_all_axes_range(const ov::Output<ov:
     const auto step = v0::Constant::create(ov::element::i32, ov::Shape{}, {1});
     return std::make_shared<v4::Range>(start, rank_of_input_scalar, step, ov::element::i64);
 }
+}  // namespace detail
 
+// Operator definition:
+// https://github.com/onnx/onnx/blob/a90ee0519933bd7412b04a3b7472eb550e78fcaf/onnx/defs/math/old.cc#L14
 ov::OutputVector negative_log_likelihood_loss(const ov::OutputVector inputs,
                                               const std::string reduction,
                                               bool use_ignore_index = false,
                                               const int64_t ignore_index_value = 0) {
-    // Operator definition:
-    // https://github.com/onnx/onnx/blob/a90ee0519933bd7412b04a3b7472eb550e78fcaf/onnx/defs/math/old.cc#L14
     const auto num_inputs = inputs.size();
     const auto& data = inputs[0];
     const auto& target = inputs[1];
@@ -70,7 +71,7 @@ ov::OutputVector negative_log_likelihood_loss(const ov::OutputVector inputs,
 
         if (num_inputs < 3) {
             loss = std::make_shared<v0::Squeeze>(loss_N1dd, axes);
-            const auto reduction_axes = get_dynamic_all_axes_range(loss);
+            const auto reduction_axes = detail::get_dynamic_all_axes_range(loss);
             if (reduction == "mean") {
                 loss = std::make_shared<v1::ReduceMean>(loss, reduction_axes);
             } else if (reduction == "sum") {
@@ -83,12 +84,12 @@ ov::OutputVector negative_log_likelihood_loss(const ov::OutputVector inputs,
 
             loss = std::make_shared<v1::Multiply>(loss_unweighted, gather_weights);
             if (reduction == "mean") {
-                const auto loss_sum = std::make_shared<v1::ReduceSum>(loss, get_dynamic_all_axes_range(loss));
+                const auto loss_sum = std::make_shared<v1::ReduceSum>(loss, detail::get_dynamic_all_axes_range(loss));
                 const auto wg_sum =
-                    std::make_shared<v1::ReduceSum>(gather_weights, get_dynamic_all_axes_range(gather_weights));
+                    std::make_shared<v1::ReduceSum>(gather_weights, detail::get_dynamic_all_axes_range(gather_weights));
                 loss = std::make_shared<v1::Divide>(loss_sum, wg_sum);
             } else if (reduction == "sum") {
-                loss = std::make_shared<v1::ReduceSum>(loss, get_dynamic_all_axes_range(loss));
+                loss = std::make_shared<v1::ReduceSum>(loss, detail::get_dynamic_all_axes_range(loss));
             }
         }
     } else {
@@ -131,18 +132,17 @@ ov::OutputVector negative_log_likelihood_loss(const ov::OutputVector inputs,
 
         loss = std::make_shared<v1::Multiply>(loss_unweighted, gather_weights);
         if (reduction == "mean") {
-            const auto loss_sum = std::make_shared<v1::ReduceSum>(loss, get_dynamic_all_axes_range(loss));
+            const auto loss_sum = std::make_shared<v1::ReduceSum>(loss, detail::get_dynamic_all_axes_range(loss));
             const auto wg_sum =
-                std::make_shared<v1::ReduceSum>(gather_weights, get_dynamic_all_axes_range(gather_weights));
+                std::make_shared<v1::ReduceSum>(gather_weights, detail::get_dynamic_all_axes_range(gather_weights));
             loss = std::make_shared<v1::Divide>(loss_sum, wg_sum);
         } else if (reduction == "sum") {
-            loss = std::make_shared<v1::ReduceSum>(loss, get_dynamic_all_axes_range(loss));
+            loss = std::make_shared<v1::ReduceSum>(loss, detail::get_dynamic_all_axes_range(loss));
         }
     }
 
     return {loss};
 }
-}  // namespace detail
 
 ov::OutputVector negative_log_likelihood_loss(const ov::frontend::onnx::Node& node) {
     common::default_op_checks(node, 2);
@@ -166,7 +166,7 @@ ov::OutputVector negative_log_likelihood_loss(const ov::frontend::onnx::Node& no
                      "NegativeLogLikelihoodLoss expects reduction: none, sum, mean. Got: ",
                      reduction);
 
-    return detail::negative_log_likelihood_loss(inputs, reduction, ignore_index, ignore_index_value);
+    return negative_log_likelihood_loss(inputs, reduction, ignore_index, ignore_index_value);
 }
 
 ONNX_OP("NegativeLogLikelihoodLoss", OPSET_SINCE(1), ai_onnx::opset_1::negative_log_likelihood_loss);
