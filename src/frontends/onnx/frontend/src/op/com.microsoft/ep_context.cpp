@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "core/null_node.hpp"
 #include "core/operator_set.hpp"
-#include "exception.hpp"
+#include "exceptions.hpp"
 #include <string>
 
 namespace ov {
